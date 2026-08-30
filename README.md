@@ -80,7 +80,7 @@ Shared by all variants.
 | `diff_K` | 20 | diffusion steps behind each potential |
 | `width` | 128 | hidden width of the coordinate network |
 | `depth` | 2 | hidden layers |
-| `w0` | 4.0 for `Fling`, 2.0 otherwise | activation frequency |
+| `w0` | 4.0 for `Fling`, 2.0 otherwise | activation frequency, used only by siren, finer and gabor |
 | `act` | `gelu` | activation |
 
 Specific to `FlingStress`.

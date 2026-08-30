@@ -103,9 +103,13 @@ def graph_tag(kind, n):
     return kind if kind != "delaunay" else f"delaunay_n{n}"
 
 
-def arm_tag(arm, alpha, diff_k, landmarks, npiv=None):
+def arm_tag(arm, alpha, diff_k, landmarks, npiv=None, tmax=30):
+    # s_gd2 runs only 30 passes by default, so its budget is part of its cache key
+    if arm == "sgd2":
+        return arm if tmax == 30 else f"{arm}_T{tmax}"
+
     # the diffusion horizon has to reach across the graph, so it is part of the cache key
-    if arm == "sgd2" or (alpha, diff_k, landmarks) == (0.05, 20, 64):
+    if (alpha, diff_k, landmarks) == (0.05, 20, 64):
         return arm if npiv is None else f"{arm}_P{npiv}"
 
     tag = f"{arm}_a{alpha:g}_K{diff_k}_L{landmarks}"
@@ -140,29 +144,51 @@ def fit_fling(graph, seed, alpha, diff_k, landmarks, cls=Fling, npiv=None):
     )
 
 
-def fit_sgd2(edges, n_nodes, seed):
+def fit_sgd2(edges, n_nodes, seed, tmax=30, eps=0.01):
     t0 = time.perf_counter()
+
     # the sparse pivot variant, which is what scales past a few tens of thousands of nodes
     xy = s_gd2.layout_sparse(
         edges[:, 0].astype(np.int32),
         edges[:, 1].astype(np.int32),
         min(200, n_nodes - 1),
+        t_max=tmax,
+        eps=eps,
         random_seed=seed,
     )
 
     return np.asarray(xy, float), dict(
-        t=time.perf_counter() - t0, host_mb=peak_mb(), gpu_mb=0.0
+        t=time.perf_counter() - t0,
+        host_mb=peak_mb(),
+        gpu_mb=0.0,
+        t_max=tmax,
+        eps=eps,
     )
 
 
-def run(kind, n, seed, out, n_pivots, data, alpha, diff_k, landmarks, arms, npiv=None):
+def run(
+    kind,
+    n,
+    seed,
+    out,
+    n_pivots,
+    data,
+    alpha,
+    diff_k,
+    landmarks,
+    arms,
+    npiv=None,
+    tmax=30,
+    eps=0.01,
+):
     out.mkdir(parents=True, exist_ok=True)
     tag = graph_tag(kind, n)
     todo = [
         a
         for a in arms
         if not (
-            out / f"{arm_tag(a, alpha, diff_k, landmarks, npiv)}_{tag}_seed{seed}.json"
+            out
+            / f"{arm_tag(a, alpha, diff_k, landmarks, npiv, tmax)}_{tag}_seed{seed}.json"
         ).exists()
     ]
     if not todo:
@@ -187,10 +213,10 @@ def run(kind, n, seed, out, n_pivots, data, alpha, diff_k, landmarks, arms, npiv
     pivots = np.random.default_rng(seed).choice(n_nodes, n_pivots, replace=False)
 
     for arm in todo:
-        name = arm_tag(arm, alpha, diff_k, landmarks, npiv)
+        name = arm_tag(arm, alpha, diff_k, landmarks, npiv, tmax)
         print(f"fitting {name}", flush=True)
         if arm == "sgd2":
-            pos, cell = fit_sgd2(edges, n_nodes, seed)
+            pos, cell = fit_sgd2(edges, n_nodes, seed, tmax, eps)
         else:
             cls = FlingStress if arm == "flingstress" else Fling
             pos, cell = fit_fling(graph, seed, alpha, diff_k, landmarks, cls, npiv)
@@ -215,6 +241,9 @@ if __name__ == "__main__":
     p.add_argument("--diff-k", type=int, default=20)
     p.add_argument("--landmarks", type=int, default=64)
     p.add_argument("--npiv", type=int, default=None)  # FlingStress pivot columns
+    # s_gd2 defaults to 30 passes, which is usually short of converged
+    p.add_argument("--sgd-tmax", type=int, default=30)
+    p.add_argument("--sgd-eps", type=float, default=0.01)
     p.add_argument("--arms", nargs="*", default=["fling", "sgd2"])  # or flingstress
     p.add_argument("--out", type=pathlib.Path, default=ROOT / "cache" / "million")
 
@@ -232,4 +261,6 @@ if __name__ == "__main__":
         a.landmarks,
         a.arms,
         a.npiv,
+        a.sgd_tmax,
+        a.sgd_eps,
     )
