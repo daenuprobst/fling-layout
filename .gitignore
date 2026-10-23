@@ -225,3 +225,4 @@ cache/
 data/
 figures/
 tables/
+!website/data/

@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="en" data-version="20261016142325">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fling — Inductive Graph Layout with Implicit Neural Fields</title>
+  <meta name="description" content="Fling draws graphs by training a small network that maps each node to a position.">
+  <script>
+    // apply a saved light/dark choice before the page is drawn, so it does not flash
+    try {
+      const saved = localStorage.getItem("theme");
+      if (saved === "light" || saved === "dark") document.documentElement.dataset.theme = saved;
+    } catch (e) {}
+  </script>
+  <link id="hl-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+  <link id="hl-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+  <!-- STIX Two for mathematical symbols (ℝ ∈ = Φ θ ψ λ), which the text font does not have -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital@0;1&text=%E2%84%9D%E2%88%88%3D%CE%A6%CE%B8%CF%88%CE%BB">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+  <link rel="stylesheet" href="style.css?v=20261016142325">
+</head>
+<body>
+<button class="theme-toggle" type="button" aria-label="Switch between light and dark"></button>
+<main>
+  <div class="top">
+  <div class="intro">
+  <header>
+    <p class="kicker">Fling</p>
+    <h1>Inductive Graph Layout with Implicit Neural Fields</h1>
+    <p class="authors">Berfin Inal &middot; Daniel Probst</p>
+    <p class="links">
+      <a href="https://arxiv.org/abs/2608.08876" target="_blank" rel="noopener">Paper</a> ·
+      <a href="https://github.com/daenuprobst/fling-layout" target="_blank" rel="noopener">Code</a> ·
+      <a href="https://test.pypi.org/project/fling-layout/#description" target="_blank" rel="noopener">PyPI</a>
+    </p>
+  </header>
+
+  <p class="lede">
+    Stress-based and force-directed layout methods treat the coordinates of the <i>N</i> nodes as
+    free parameters and optimise them directly. The resulting layout is transductive, defined
+    only for the nodes present during optimisation, and incorporating new nodes requires
+    re-optimisation, which in general does not preserve the existing drawing. We introduce
+    <strong>Fling</strong> (<strong>F</strong>ield <strong>L</strong>ayout via
+    <strong>I</strong>mplicit <strong>N</strong>eural <strong>G</strong>eometry), which instead
+    parameterises the layout as an implicit neural field, in which a coordinate network &Phi;<sub>&theta;</sub> maps a
+    structural feature vector <i>f<sub>v</sub></i> of each node to its position,
+    <span class="math"><i>p<sub>v</sub></i> = &Phi;<sub>&theta;</sub>(<i>f<sub>v</sub></i>) &isin; &#8477;<sup>2</sup></span>.
+    The weights &theta; are fitted to the layout energy of a single input graph, and the fitted
+    field is inductive, assigning positions to nodes that were not observed during fitting.
+  </p>
+
+  <h2>Contributions</h2>
+  <ol class="features">
+    <li><strong>Layout as an inductive field.</strong> A node that was not seen during fitting is
+    placed by evaluating &Phi;<sub>&theta;</sub> once, with no re-optimisation. Nodes already drawn
+    move only as far as their own features change when the graph grows, so the existing drawing is
+    largely preserved.
+    Because the parameters are a fixed set of network weights rather than one coordinate pair per
+    node, the model size is independent of the size of the graph, and the weights can be fitted on
+    a sample of the nodes. Among methods that can place unseen nodes in this way,
+    the fitted field outperforms PivotMDS, landmark MDS and kernel ridge regression on the same
+    node features.</li>
+    <li><strong>Training without the <i>O</i>(<i>N</i><sup>2</sup>) sum over node pairs.</strong>
+    Layout energies such as stress compare every pair of nodes, so a single evaluation costs
+    <i>O</i>(<i>N</i><sup>2</sup>). Each variant avoids this cost. <code>Fling</code> computes
+    the exact pairwise terms only at <i>m</i>&nbsp;&#8810;&nbsp;<i>N</i> anchor nodes and fits a
+    second, auxiliary network &Phi;&#771;<sub>&psi;</sub> that extends them to all nodes, so a
+    training step costs <i>O</i>(<i>mN</i>). The stress and neighbour-embedding variants
+    evaluate their energies on random subsets of node pairs instead. The auxiliary network is used
+    only during training, and placing a node always requires &Phi;<sub>&theta;</sub> alone.</li>
+    <!-- TODO: the remaining contributions from the paper, one <li> each, in the same form:
+         <li><strong>Short title.</strong> One to three sentences.</li> -->
+  </ol>
+
+  <h2>Method</h2>
+  <p>
+    Each node is first described by how easily it is reached from a few landmark nodes spread
+    across the graph. From every landmark, a random walk moves along the edges and returns to the
+    landmark with a fixed probability at each step, so it mostly stays in the landmark's
+    neighbourhood. Nodes near a landmark are visited often and distant nodes rarely, and the visit
+    frequencies to all landmarks, on a logarithmic scale, form the feature vector
+    <i>f<sub>v</sub></i>. The landmarks are chosen once, at fitting time, so a new node is
+    described with respect to the same landmarks as the nodes already drawn. All variants share
+    this input and the
+    coordinate network &Phi;<sub>&theta;</sub>, and differ only in the energy on which the weights
+    are trained, namely all-pairs stress majorisation (<code>Fling</code>), scale-normalised pivot stress
+    (<code>FlingStress</code>), or a neighbour-embedding energy with sampled negatives plus
+    node&ndash;edge and crossing terms (<code>FlingVis</code>). Because the features are defined for
+    every node of the graph, the fitted field can be evaluated on nodes outside the training set.
+  </p>
+  <figure class="wide">
+    <img src="img/fling_overview_paperstyle.png?v=20261016142325" alt="The Fling pipeline: random walks with restart from landmark nodes give each node its diffusion potentials, a coordinate network maps them to a position, and the positions form the layout of the graph.">
+  </figure>
+  </div>
+
+  <aside class="sidebar">
+    <a class="badge" href="https://pypi.org/project/fling-layout/" target="_blank" rel="noopener">Version 0.1.0rc4</a>
+
+    <h3>Quick installation</h3>
+  <div class="tabs" data-tabs="install">
+    <div class="tablist" role="tablist">
+      <button role="tab" aria-selected="true" data-panel="pip">pip</button>
+      <button role="tab" aria-selected="false" data-panel="uv">uv</button>
+      <button role="tab" aria-selected="false" data-panel="source">From source</button>
+    </div>
+    <div class="panel" data-panel="pip">
+<pre><code class="language-bash">pip install fling-layout
+
+# with plotting and the large-graph extras
+pip install "fling-layout[all]"</code></pre>
+    </div>
+    <div class="panel" data-panel="uv" hidden>
+<pre><code class="language-bash">uv pip install fling-layout
+
+# with plotting and the large-graph extras
+uv pip install "fling-layout[all]"</code></pre>
+    </div>
+    <div class="panel" data-panel="source" hidden>
+<pre><code class="language-bash">git clone https://github.com/daenuprobst/fling-layout.git
+cd fling-layout
+pip install -e ".[all]"</code></pre>
+    </div>
+  </div>
+    <div class="callout">
+      <p class="callout-title">Tip</p>
+      <p>Python 3.10 or newer. Fling uses a GPU when PyTorch finds one, and the CPU otherwise. To try
+      it without installing, open the
+      <a href="https://colab.research.google.com/github/daenuprobst/fling-layout/blob/main/tutorial.ipynb" target="_blank" rel="noopener">tutorial
+      in Colab</a>.</p>
+    </div>
+
+    <h3>Quick demos</h3>
+  <div class="tabs demos" data-tabs="demos">
+    <div class="tablist" role="tablist">
+      <button role="tab" aria-selected="true" data-panel="first_layout">First layout</button>
+      <button role="tab" aria-selected="false" data-panel="variants">Three variants</button>
+      <button role="tab" aria-selected="false" data-panel="new_nodes">Adding nodes</button>
+      <button role="tab" aria-selected="false" data-panel="blend">One fit, many layouts</button>
+    </div>
+
+    <div class="panel" data-panel="first_layout">
+      <p>A balanced tree of 364 nodes, coloured by depth. Any networkx graph with integer node labels
+      from zero works; <code>fit_transform</code> returns one row of coordinates per node.</p>
+      <div class="demo" data-demo="first_layout"></div>
+    </div>
+    <div class="panel" data-panel="variants" hidden>
+      <p>A block model with three communities, drawn by each variant and coloured by community. <code>Fling</code> minimises
+      all-pairs stress, <code>FlingStress</code> stress over sampled pivots, and <code>FlingVis</code>
+      a neighbour embedding, which pulls the communities apart. The network and its input are the
+      same in all three.</p>
+      <div class="demo" data-demo="variants"></div>
+    </div>
+    <div class="panel" data-panel="new_nodes" hidden>
+      <p>A block model with three communities, coloured by community. <code>FlingVis</code> is trained on 204 of the 240
+      nodes, and the 36 it never saw (outlined) are placed by the trained model without refitting.
+      Every one of them lands among its own community. <code>transform</code> evaluates the model on
+      the full graph, so the original nodes can shift slightly as well.</p>
+      <div class="demo" data-demo="new_nodes"></div>
+    </div>
+    <div class="panel" data-panel="blend" hidden>
+      <p><code>FlingBlend</code> is fitted once and drawn at any weight &lambda; between stress
+      and a neighbour embedding. Each drawing is one forward pass. The graph is a ring of 300 nodes
+      with a few shortcuts, coloured by position along the ring.</p>
+      <div class="demo" data-demo="blend"></div>
+    </div>
+  </div>
+  </aside>
+  <div class="rest">
+
+  <h2>Variants</h2>
+  <p>
+    All variants read the same diffusion potentials \(f_v\) and train the same coordinate network
+    \(\Phi_\theta\); they differ only in the energy on which the weights are trained. None of them
+    evaluates the \(O(N^2)\) pair sum. After training, an unseen node \(v^\star\) is placed by one
+    forward pass, \(x_{v^\star} = \Phi_\theta(f_{v^\star})\).
+  </p>
+  <p>
+    Below the explanations, every variant draws six graphs from the paper's benchmark, two chosen
+    to show the strength of each variant; reading down a column compares the variants on the
+    same graph. Under each drawing are
+    the normalised stress (lower is better) and the neighbourhood preservation, NP (higher is
+    better), for a single seed; the best value of the measure each column is about is highlighted.
+  </p>
+
+  <div class="variants">
+    <section>
+      <h3><code>Fling</code></h3>
+      <p class="variant-energy">Kamada&ndash;Kawai stress, by majorisation</p>
+      <p>
+        Each step evaluates the exact pair term at \(m \ll N\) sampled anchors, fits a secondary,
+        training-time field \(\widetilde{\Phi}_\psi\) to these values, and queries it at every
+        node, so a step costs \(O(mN)\). The field plays the role of a Barnes&ndash;Hut far field,
+        without the tree. Rest lengths come from the pivot bound
+        \(r_{ij} = \max_s |h_{is} - h_{js}|\) over the hop distances \(h_i \in \mathbb{R}^p\) to
+        \(p\) farthest-first pivots, so no distance matrix is ever formed.
+      </p>
+    </section>
+    <section>
+      <h3><code>FlingStress</code></h3>
+      <p class="variant-energy">Scale-normalised pivot stress</p>
+      <p>
+        Trains the network to reproduce shortest-path distances to \(|Q| \ll N\) uniformly sampled
+        pivots, with the graph edges as unit-length targets for local fidelity,
+      </p>
+      <p class="equation">\[
+        \begin{aligned}
+        \mathcal{L}_{ST} = \frac{1}{|\mathcal{T}| + |E|}\Big[
+        &\sum_{(v,j)\in\mathcal{T}}\Big(\frac{a\,e_{vj} - \Delta_{vj}}{\Delta_{vj}}\Big)^2 \\
+        &+ \sum_{(u,w)\in E}\big(a\,e_{uw} - 1\big)^2\Big]
+        \end{aligned}
+      \]</p>
+      <p>
+        The scale \(a\) minimises the bracket in closed form and is refitted at every step. The
+        pivot sum runs over batches of \(\min(128, |Q|)\) columns, and the result matches sgd² to
+        within a few percent.
+      </p>
+    </section>
+    <section>
+      <h3><code>FlingVis</code></h3>
+      <p class="variant-energy">Neighbour embedding with legibility terms</p>
+      <p>
+        A neighbour-embedding energy over the edges and uniformly sampled non-adjacent pairs
+        \(\mathcal{N}\), with the attraction exaggerated over the first third of training,
+      </p>
+      <p class="equation">\[
+        \begin{aligned}
+        \mathcal{L}_{NE} = {}&\frac{1}{|E|}\sum_{(u,v)\in E}\log\big(1 + e_{uv}^2\big) \\
+        &- \frac{1}{|\mathcal{N}|}\sum_{(u,v)\in\mathcal{N}}\log\frac{e_{uv}^2}{1 + e_{uv}^2}
+        \end{aligned}
+      \]</p>
+      <p>
+        A second phase adds node&ndash;edge clearance, \(\mathrm{relu}(1 - d_{v,uw}/c\ell)^2\), and
+        a differentiable crossing count,
+        \(\chi = \sigma(-d_1 d_2/\tau)\,\sigma(-d_3 d_4/\tau)\), each evaluated on the
+        \(\kappa\)-nearest candidates of \(m'\) sampled nodes or edges at \(O(\kappa m')\) per step.
+      </p>
+    </section>
+  </div>
+
+  <div class="variant-matrix6" data-measures='{"dwt_1005": "stress", "grid_400": "stress", "tree_400": "stress", "jagmesh8": "stress", "sbm_240": "np", "delaunay_600": "np"}'>
+    <div class="v6-row"><code>Fling</code></div>
+    <figure class="vg-cell">
+      <img src="img/variants/fling_dwt_1005.png?v=20261016142325" alt="dwt_1005 drawn by Fling" loading="lazy">
+      <figcaption data-graph="dwt_1005" data-variant="Fling"></figcaption>
+    </figure>
+    <figure class="vg-cell">
+      <img src="img/variants/fling_grid_400.png?v=20261016142325" alt="grid_400 drawn by Fling" loading="lazy">
+      <figcaption data-graph="grid_400" data-variant="Fling"></figcaption>
+    </figure>
+    <figure class="vg-cell">
+      <img src="img/variants/fling_tree_400.png?v=20261016142325" alt="tree_400 drawn by Fling" loading="lazy">
+      <figcaption data-graph="tree_400" data-variant="Fling"></figcaption>
+    </figure>
+    <figure class="vg-cell">
+      <img src="img/variants/fling_jagmesh8.png?v=20261016142325" alt="jagmesh8 drawn by Fling" loading="lazy">
+      <figcaption data-graph="jagmesh8" data-variant="Fling"></figcaption>
+    </figure>
+    <figure class="vg-cell">
+      <img src="img/variants/fling_sbm_240.png?v=20261016142325" alt="sbm_240 drawn by Fling" loading="lazy">
+      <figcaption data-graph="sbm_240" data-variant="Fling"></figcaption>
+    </figure>
+    <figure class="vg-cell">
+      <img src="img/variants/fling_delaunay_600.png?v=20261016142325" alt="delaunay_600 drawn by Fling" loading="lazy">
+      <figcaption data-graph="delaunay_600" data-variant="Fling"></figcaption>
+    </figure>
+    <div class="v6-row"><code>FlingStress</code></div>
+    <figure class="vg-cell">
+      <img src="img/variants/flingstress_dwt_1005.png?v=20261016142325" alt="dwt_1005 drawn by FlingStress" loading="lazy">
+      <figcaption data-graph="dwt_1005" data-variant="FlingStress"></figcaption>
+    </figure>
+    <figure class="vg-cell">
+      <img src="img/variants/flingstress_grid_400.png?v=20261016142325" alt="grid_400 drawn by FlingStress" loading="lazy">
+      <figcaption data-graph="grid_400" data-variant="FlingStress"></figcaption>
+    </figure>
+    <figure class="vg-cell">
+      <img src="img/variants/flingstress_tree_400.png?v=20261016142325" alt="tree_400 drawn by FlingStress" loading="lazy">
+      <figcaption data-graph="tree_400" data-variant="FlingStress"></figcaption>
+    </figure>
+    <figure class="vg-cell">
+      <img src="img/variants/flingstress_jagmesh8.png?v=20261016142325" alt="jagmesh8 drawn by FlingStress" loading="lazy">
+      <figcaption data-graph="jagmesh8" data-variant="FlingStress"></figcaption>
+    </figure>
+    <figure class="vg-cell">
+      <img src="img/variants/flingstress_sbm_240.png?v=20261016142325" alt="sbm_240 drawn by FlingStress" loading="lazy">
+      <figcaption data-graph="sbm_240" data-variant="FlingStress"></figcaption>
+    </figure>
+    <figure class="vg-cell">
+      <img src="img/variants/flingstress_delaunay_600.png?v=20261016142325" alt="delaunay_600 drawn by FlingStress" loading="lazy">
+      <figcaption data-graph="delaunay_600" data-variant="FlingStress"></figcaption>
+    </figure>
+    <div class="v6-row"><code>FlingVis</code></div>
+    <figure class="vg-cell">
+      <img src="img/variants/flingvis_dwt_1005.png?v=20261016142325" alt="dwt_1005 drawn by FlingVis" loading="lazy">
+      <figcaption data-graph="dwt_1005" data-variant="FlingVis"></figcaption>
+    </figure>
+    <figure class="vg-cell">
+      <img src="img/variants/flingvis_grid_400.png?v=20261016142325" alt="grid_400 drawn by FlingVis" loading="lazy">
+      <figcaption data-graph="grid_400" data-variant="FlingVis"></figcaption>
+    </figure>
+    <figure class="vg-cell">
+      <img src="img/variants/flingvis_tree_400.png?v=20261016142325" alt="tree_400 drawn by FlingVis" loading="lazy">
+      <figcaption data-graph="tree_400" data-variant="FlingVis"></figcaption>
+    </figure>
+    <figure class="vg-cell">
+      <img src="img/variants/flingvis_jagmesh8.png?v=20261016142325" alt="jagmesh8 drawn by FlingVis" loading="lazy">
+      <figcaption data-graph="jagmesh8" data-variant="FlingVis"></figcaption>
+    </figure>
+    <figure class="vg-cell">
+      <img src="img/variants/flingvis_sbm_240.png?v=20261016142325" alt="sbm_240 drawn by FlingVis" loading="lazy">
+      <figcaption data-graph="sbm_240" data-variant="FlingVis"></figcaption>
+    </figure>
+    <figure class="vg-cell">
+      <img src="img/variants/flingvis_delaunay_600.png?v=20261016142325" alt="delaunay_600 drawn by FlingVis" loading="lazy">
+      <figcaption data-graph="delaunay_600" data-variant="FlingVis"></figcaption>
+    </figure>
+    <div class="v6-divider">Baselines</div>
+    <div class="v6-row baseline">sgd²</div>
+    <figure class="vg-cell baseline">
+      <img src="img/variants/sgd2_dwt_1005.png?v=20261016142325" alt="dwt_1005 drawn by sgd²" loading="lazy">
+      <figcaption data-graph="dwt_1005" data-variant="sgd2"></figcaption>
+    </figure>
+    <figure class="vg-cell baseline">
+      <img src="img/variants/sgd2_grid_400.png?v=20261016142325" alt="grid_400 drawn by sgd²" loading="lazy">
+      <figcaption data-graph="grid_400" data-variant="sgd2"></figcaption>
+    </figure>
+    <figure class="vg-cell baseline">
+      <img src="img/variants/sgd2_tree_400.png?v=20261016142325" alt="tree_400 drawn by sgd²" loading="lazy">
+      <figcaption data-graph="tree_400" data-variant="sgd2"></figcaption>
+    </figure>
+    <figure class="vg-cell baseline">
+      <img src="img/variants/sgd2_jagmesh8.png?v=20261016142325" alt="jagmesh8 drawn by sgd²" loading="lazy">
+      <figcaption data-graph="jagmesh8" data-variant="sgd2"></figcaption>
+    </figure>
+    <figure class="vg-cell baseline">
+      <img src="img/variants/sgd2_sbm_240.png?v=20261016142325" alt="sbm_240 drawn by sgd²" loading="lazy">
+      <figcaption data-graph="sbm_240" data-variant="sgd2"></figcaption>
+    </figure>
+    <figure class="vg-cell baseline">
+      <img src="img/variants/sgd2_delaunay_600.png?v=20261016142325" alt="delaunay_600 drawn by sgd²" loading="lazy">
+      <figcaption data-graph="delaunay_600" data-variant="sgd2"></figcaption>
+    </figure>
+    <div class="v6-row baseline">tsNET</div>
+    <figure class="vg-cell baseline">
+      <img src="img/variants/tsnet_dwt_1005.png?v=20261016142325" alt="dwt_1005 drawn by tsNET" loading="lazy">
+      <figcaption data-graph="dwt_1005" data-variant="tsNET"></figcaption>
+    </figure>
+    <figure class="vg-cell baseline">
+      <img src="img/variants/tsnet_grid_400.png?v=20261016142325" alt="grid_400 drawn by tsNET" loading="lazy">
+      <figcaption data-graph="grid_400" data-variant="tsNET"></figcaption>
+    </figure>
+    <figure class="vg-cell baseline">
+      <img src="img/variants/tsnet_tree_400.png?v=20261016142325" alt="tree_400 drawn by tsNET" loading="lazy">
+      <figcaption data-graph="tree_400" data-variant="tsNET"></figcaption>
+    </figure>
+    <figure class="vg-cell baseline">
+      <img src="img/variants/tsnet_jagmesh8.png?v=20261016142325" alt="jagmesh8 drawn by tsNET" loading="lazy">
+      <figcaption data-graph="jagmesh8" data-variant="tsNET"></figcaption>
+    </figure>
+    <figure class="vg-cell baseline">
+      <img src="img/variants/tsnet_sbm_240.png?v=20261016142325" alt="sbm_240 drawn by tsNET" loading="lazy">
+      <figcaption data-graph="sbm_240" data-variant="tsNET"></figcaption>
+    </figure>
+    <figure class="vg-cell baseline">
+      <img src="img/variants/tsnet_delaunay_600.png?v=20261016142325" alt="delaunay_600 drawn by tsNET" loading="lazy">
+      <figcaption data-graph="delaunay_600" data-variant="tsNET"></figcaption>
+    </figure>
+  </div>
+
+  <p class="vm-notes">
+    The columns, from left to right, hold two graphs for the strength of each variant, from the
+    paper's benchmark of meshes and trees, where the pivot bound is tight, and small-world graphs,
+    where it is not. The first two show <code>Fling</code>. dwt_1005 is a structural connection
+    table (Everstine and Taylor, 1980) from SuiteSparse, with <i>N</i>&nbsp;=&nbsp;1,005 nodes, 3,808 edges and
+    diameter 34, and grid_400 is a 20&nbsp;&times;&nbsp;20 square grid (<i>N</i>&nbsp;=&nbsp;400, 760 edges, diameter
+    38). On these meshes the full majorised stress of <code>Fling</code> comes within 10% and 2% of
+    <code>FlingStress</code> without forming a distance matrix. The next two show
+    <code>FlingStress</code>. tree_400 is a uniformly random labelled tree (<i>N</i>&nbsp;=&nbsp;400, 399 edges,
+    diameter 55), on which <code>FlingStress</code> reaches less than half the stress of
+    <code>Fling</code>, and jagmesh8 is a finite-element mesh with six holes (George, 1978) from
+    SuiteSparse (<i>N</i>&nbsp;=&nbsp;1,141, 3,162 edges, diameter 48), on which its stress is 22% below that
+    of <code>Fling</code>. The last two show <code>FlingVis</code>. sbm_240 is a stochastic block model
+    with three communities of 80 nodes, <i>p</i><sub>in</sub>&nbsp;=&nbsp;0.12 and
+    <i>p</i><sub>out</sub>&nbsp;=&nbsp;0.008 (<i>N</i>&nbsp;=&nbsp;240, 1,287 edges, diameter 5), a small-world graph
+    whose communities <code>FlingVis</code> separates with about twice the neighbourhood preservation
+    of the stress variants, and delaunay_600 is the Delaunay triangulation of 600 random points in the
+    unit square (1,781 edges, diameter 16), where its NP is 0.83 against 0.34.
+  </p>
+  <p class="vm-notes">
+    The two lower rows are baselines that optimise the node coordinates directly, so neither can
+    place a node it was not computed on. Against sgd², the reference stress solver,
+    <code>FlingStress</code> reaches 1.01 to 1.07 times its stress on all six graphs, in line with the
+    1.00 to 1.11 reported in the paper. tsNET, a neighbour embedding over the full distance matrix,
+    matches <code>FlingVis</code> on delaunay_600 (NP 0.83) and preserves neighbourhoods better on
+    sbm_240 (0.26 against 0.20). The bold marks the best of the three Fling variants in each column.
+  </p>
+
+
+
+
+
+  <h3>One field for a continuum of objectives (<code>FlingBlend</code>)</h3>
+  <p>
+    For a blended energy \(\mathcal{L}(\lambda) = (1-\lambda)\,\mathcal{L}_A + \lambda\,\mathcal{L}_B\),
+    the network receives \(\lambda\) as a second input, \(\Phi_\theta(f_v, \lambda)\), resampled at
+    every step from a \(\mathrm{Beta}(\tfrac12, \tfrac12)\) prior that keeps weight on both
+    endpoints. \(\lambda\) enters as Fourier features that modulate the hidden layers through
+    learned per-channel gains and shifts, rather than as one more input number, which the network
+    tends to underuse. The whole continuum \(\lambda \in [0, 1]\) is then a single function, and
+    the drawings for different \(\lambda\) share one coordinate frame with no alignment step.
+  </p>
+
+  <table class="variant-table">
+    <thead>
+      <tr><th></th><th><code>Fling</code></th><th><code>FlingStress</code></th><th><code>FlingVis</code></th></tr>
+    </thead>
+    <tbody>
+      <tr><th>Energy</th><td>Majorised Kamada&ndash;Kawai stress</td><td>Scale-normalised pivot stress</td><td>Neighbour embedding, clearance, crossings</td></tr>
+      <tr><th>Preserves</th><td>Graph distances</td><td>Graph distances</td><td>Local neighbourhoods, legibility</td></tr>
+      <tr><th>Pair sum replaced by</th><td>Secondary field at \(m\) anchors, \(O(mN)\)</td><td>Sampled pivot batches</td><td>Sampled negatives and candidates</td></tr>
+      <tr><th>Input</th><td>Diffusion potentials</td><td>Diffusion potentials and probes</td><td>Diffusion potentials</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Demonstrations</h2>
+
+  <h3>Training on a sample, placing the rest</h3>
+  <p>
+    Because the unknowns are the network weights rather than one coordinate per node, the energy can
+    be evaluated on a random sample of the nodes. <code>FlingStress</code> is trained on nested
+    samples of between 2% and 100% of the nodes, and each time the trained model places every node of
+    the graph, including all those outside the sample. The drawings are rotated onto the one trained
+    on all nodes, which changes only the viewpoint.
+  </p>
+  <figure class="wide" id="sample">
+    <div class="datasets">
+      <button type="button" data-name="minnesota" aria-pressed="true">Minnesota roads</button>
+      <button type="button" data-name="crack" aria-pressed="false">crack</button>
+      <button type="button" data-name="jagmesh8" aria-pressed="false">jagmesh8</button>
+    </div>
+    <canvas></canvas>
+    <div class="controls">
+      <input type="range" id="fraction" min="0" max="5" step="1" value="1" aria-label="Training sample">
+      <output for="fraction"></output>
+    </div>
+    <p class="readout"></p>
+    <figcaption></figcaption>
+  </figure>
+
+  <h3>Placing new entries as a database grows</h3>
+  <p>
+    Biological data keeps arriving, and a map of it is only useful if new entries can be added without
+    redrawing it. We take three examples, protein domains from the PDB by year of deposition,
+    classified by CATH and linked by structural similarity, ligands of six protein targets from ChEMBL
+    by year of publication, linked by chemical similarity, and single blood cells from eight donors,
+    linked by similarity of gene expression, where a reference of two donors is extended one donor at
+    a time, as in mapping new samples onto a cell atlas. In each, <code>FlingVis</code> is fitted once
+    to the first entries, and each later batch is embedded with &Phi;<sub>&theta;</sub> held fixed. As the graph
+    grows, the diffusion features of existing nodes change as well; each batch is therefore
+    registered to the fitted layout by a single affine transformation, estimated by least squares on
+    the training entries, and entries placed earlier keep their positions.
+  </p>
+  <p>
+    The small dots are the entries the model was trained on, one colour per class. The entries of the
+    selected period are drawn larger, in the colour of their own class, so a correct placement puts
+    each one among the training entries of its colour. Pointing at a
+    new entry draws its links to the earlier entries it is most similar to; it is placed near them
+    because its diffusion features, computed from those links, resemble theirs. Measured as the share of each new entry's
+    ten nearest training entries in the same class, placement in this dataset stays between
+    <span class="agree-min">0.7</span> and <span class="agree-max">0.85</span> in every batch,
+    against a chance level of <span class="agree-chance">0.2</span>.
+  </p>
+  <figure class="wide" id="growth">
+    <div class="datasets">
+      <button type="button" data-name="pdb" aria-pressed="true">Protein structures</button>
+      <button type="button" data-name="chembl" aria-pressed="false">ChEMBL ligands</button>
+      <button type="button" data-name="singlecell" aria-pressed="false">Single cells</button>
+    </div>
+    <canvas></canvas>
+    <div class="controls">
+      <button id="play" type="button">Play</button>
+      <input type="range" id="year" min="0" max="0" step="1" value="0" aria-label="Period">
+      <output for="year"></output>
+    </div>
+    <p class="readout"></p>
+    <ul class="legend"></ul>
+    <p class="inspect">Point at a new entry to see the earlier entries it is most similar to.</p>
+    <figcaption></figcaption>
+  </figure>
+
+  <h3>Blending two energies</h3>
+  <p>
+    <code>FlingBlend</code> conditions the field on a mixing weight &lambda; &isin; [0,&nbsp;1],
+    giving &Phi;<sub>&theta;</sub>(<i>f<sub>v</sub></i>,&nbsp;&lambda;), and is trained on the convex
+    combination (1&nbsp;&minus;&nbsp;&lambda;)&nbsp;<i>E</i><sub>stress</sub>&nbsp;+&nbsp;&lambda;&nbsp;<i>E</i><sub>NE</sub>
+    of normalised stress, which preserves graph-theoretic distances, and a neighbour-embedding
+    objective, which preserves local neighbourhoods. A single fit therefore yields a continuous
+    family of layouts, each obtained by one forward pass.
+  </p>
+  <figure class="wide" id="blend">
+    <canvas></canvas>
+    <div class="controls">
+      <input type="range" id="lam" min="0" max="40" step="1" value="0" aria-label="Lambda">
+      <output for="lam"></output>
+    </div>
+    <p class="readout"></p>
+    <figcaption>
+      Watts&ndash;Strogatz graph (<i>N</i>&nbsp;=&nbsp;300, <i>k</i>&nbsp;=&nbsp;6,
+      <i>p</i>&nbsp;=&nbsp;0.02), nodes coloured by ring index. The model was fitted with
+      &lambda;&nbsp;&isin;&nbsp;{0,&nbsp;1} only, so every intermediate value of &lambda; is unseen
+      during training. Reported are normalised stress (lower is better) and neighbourhood
+      preservation, NP (higher is better).
+    </figcaption>
+  </figure>
+
+
+  <h2>Citation</h2>
+<pre><code>@misc{inal2026inductivegraphlayoutimplicit,
+      title={Inductive Graph Layout with Implicit Neural Fields}, 
+      author={Berfin Inal and Daniel Probst},
+      year={2026},
+      eprint={2608.08876},
+      archivePrefix={arXiv},
+      primaryClass={cs.HC},
+      url={https://arxiv.org/abs/2608.08876}, 
+}
+</code></pre>
+  </div>
+  </div>
+</main>
+
+<footer>
+  <p>Berfin Inal and Daniel Probst · MIT licence</p>
+  <p class="data-credits">
+    Ligand data from <a href="https://www.ebi.ac.uk/chembl/" target="_blank" rel="noopener">ChEMBL</a>
+    (EMBL-EBI), licensed under
+    <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA 3.0</a>.
+    Protein domains from <a href="https://www.cathdb.info/" target="_blank" rel="noopener">CATH</a> and
+    the <a href="https://www.rcsb.org/" target="_blank" rel="noopener">PDB</a>; single-cell data from
+    <a href="https://doi.org/10.1038/nbt.4042" target="_blank" rel="noopener">Kang et al., 2018</a>;
+    meshes and road network from the
+    <a href="https://sparse.tamu.edu/" target="_blank" rel="noopener">SuiteSparse Matrix Collection</a>.
+  </p>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script>
+  // typeset \( ... \) and \[ ... \] in the Variants section
+  document.querySelectorAll(".variants, .variant-table, .rest > p").forEach((el) =>
+    renderMathInElement(el, {
+      delimiters: [
+        { left: "\\[", right: "\\]", display: true },
+        { left: "\\(", right: "\\)", display: false },
+      ],
+    }),
+  );
+</script>
+<script src="theme.js?v=20261016142325"></script>
+<script src="tabs.js?v=20261016142325"></script>
+<script src="variants.js?v=20261016142325"></script>
+<script src="demo.js?v=20261016142325"></script>
+<script src="sample.js?v=20261016142325"></script>
+<script src="blend.js?v=20261016142325"></script>
+</body>
+</html>

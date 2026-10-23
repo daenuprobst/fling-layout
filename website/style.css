@@ -1,0 +1,848 @@
+:root {
+  --bg: #fdfcfa;
+  --text: #1d1d1b;
+  --muted: #6b6a66;
+  --rule: #e4e2dc;
+  --code-bg: #f3f1ec;
+  --edge: rgba(0, 0, 0, 0.08);
+}
+
+/* dark colours: from the system setting, unless the visitor picked light; or when they picked dark */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161615;
+    --text: #e8e6e1;
+    --muted: #9a988f;
+    --rule: #2c2b29;
+    --code-bg: #201f1d;
+    --edge: rgba(255, 255, 255, 0.08);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161615;
+  --text: #e8e6e1;
+  --muted: #9a988f;
+  --rule: #2c2b29;
+  --code-bg: #201f1d;
+  --edge: rgba(255, 255, 255, 0.08);
+  color-scheme: dark;
+}
+:root[data-theme="light"] { color-scheme: light; }
+
+.theme-toggle {
+  position: fixed;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 10;
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.3rem 0.7rem;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 18px/1.6 Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+}
+
+main, footer {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+header { padding-top: 4rem; }
+h1 { font-size: 2.4rem; margin: 0 0 0.5rem; }
+h2 { font-size: 1.3rem; margin: 3rem 0 0.75rem; }
+.lede { font-size: 1.15rem; }
+.links { color: var(--muted); }
+a { color: inherit; text-underline-offset: 3px; }
+
+code, pre {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.85em;
+}
+pre {
+  background: var(--code-bg);
+  padding: 1rem;
+  overflow-x: auto;
+  border-radius: 4px;
+}
+
+/* figures may go wider than the text column */
+figure.wide {
+  margin: 2.5rem auto;
+  width: min(64rem, calc(100vw - 2rem));
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+}
+figure img { width: 100%; display: block; }
+figcaption {
+  max-width: 40rem;
+  margin: 0.75rem auto 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+h3 { font-size: 1.05rem; margin: 2rem 0 0.5rem; }
+
+.readout {
+  max-width: 40rem;
+  margin: 0.25rem auto 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+#growth canvas,
+#blend canvas {
+  display: block;
+  width: min(100%, 44rem);
+  aspect-ratio: 1;
+  margin: 0 auto;
+}
+.controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  max-width: 40rem;
+  margin: 0.5rem auto 0;
+}
+.controls input { flex: 1; }
+.controls output { font-variant-numeric: tabular-nums; min-width: 3em; }
+.controls button {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.25rem 0.75rem;
+  background: none;
+  color: inherit;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+footer {
+  margin-top: 4rem;
+  padding-top: 1rem;
+  padding-bottom: 3rem;
+  border-top: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  max-width: 40rem;
+  margin: 0.75rem auto 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.legend span {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  margin-right: 0.4rem;
+  border-radius: 50%;
+}
+
+.datasets {
+  display: flex;
+  gap: 0.5rem;
+  max-width: 40rem;
+  margin: 0 auto 0.75rem;
+}
+.datasets button {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.25rem 0.75rem;
+  background: none;
+  color: var(--muted);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.datasets button[aria-pressed="true"] {
+  color: var(--text);
+  border-color: var(--text);
+}
+
+/* tabs: installation, quick demos and the output / code switch */
+.tabs { margin: 1rem 0; }
+.tablist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+.tablist [role=tab] {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.4rem 0.8rem;
+  margin-bottom: -1px;
+  background: none;
+  color: var(--muted);
+  border: 1px solid transparent;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+}
+.tablist [role=tab][aria-selected=true] {
+  color: var(--text);
+  border-color: var(--rule);
+  border-bottom-color: var(--bg);
+}
+.panel { padding-top: 0.75rem; }
+.panel pre { margin: 0 0 0.5rem; }
+.panel pre code.hljs { padding: 0; background: none; }
+.demos > .panel > p { margin-top: 0; }
+.demo .tablist [role=tab] { font-size: 0.8rem; padding: 0.25rem 0.6rem; }
+.demo img {
+  display: block;
+  width: 100%;
+  border-radius: 4px;
+  background: #fff;
+}
+.demo a { font-size: 0.85rem; color: var(--muted); }
+.note { font-size: 0.9rem; color: var(--muted); }
+
+/* top of the page: introduction on the left, installation and demos in a sidebar on the right */
+.top {
+  width: min(76rem, calc(100vw - 2rem));
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 28rem);
+  gap: 3rem;
+  align-items: start;
+}
+.top header { padding-top: 3rem; }
+.features { padding-left: 1.25rem; }
+.features li { margin-bottom: 0.6rem; }
+
+.sidebar {
+  padding-top: 3.5rem;
+  font-size: 0.9rem;
+}
+.sidebar h3 {
+  font-size: 0.95rem;
+  text-align: center;
+  margin: 1.5rem 0 0.25rem;
+}
+.sidebar .tabs { margin-top: 0.5rem; }
+.sidebar pre { font-size: 0.8rem; }
+.sidebar .demos > .panel > p { font-size: 0.85rem; color: var(--muted); }
+.badge {
+  display: block;
+  width: fit-content;
+  margin: 0 auto;
+  padding: 0.35rem 0.9rem;
+  border: 1px solid var(--text);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+.callout {
+  margin: 1rem 0;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid #59a14f;
+  background: var(--code-bg);
+  font-size: 0.85rem;
+}
+.callout p { margin: 0.25rem 0; }
+.callout-title { font-weight: bold; }
+
+/* one column on narrow screens: introduction first, then the sidebar */
+@media (max-width: 56rem) {
+  .top { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .sidebar { padding-top: 0; }
+}
+
+/* whole page in two columns: the sidebar sits beside the introduction and everything after it.
+   on narrow screens the order is introduction, sidebar, rest */
+.top {
+  grid-template-areas:
+    "intro side"
+    "rest  side";
+  row-gap: 0;
+}
+.intro { grid-area: intro; }
+.rest { grid-area: rest; }
+.sidebar { grid-area: side; }
+
+/* figures fill the left column instead of breaking out to the page width */
+.top figure.wide {
+  width: auto;
+  left: auto;
+  transform: none;
+}
+.rest > h2:first-of-type { margin-top: 2rem; }
+
+@media (max-width: 56rem) {
+  .top {
+    grid-template-areas:
+      "intro"
+      "side"
+      "rest";
+  }
+}
+
+/* paper header */
+.kicker {
+  margin: 0 0 0.25rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.top header h1 { font-size: 2rem; line-height: 1.2; }
+.authors { margin: 0.5rem 0 0.25rem; }
+.rest h3 { font-size: 1.15rem; margin: 2.5rem 0 0.5rem; }
+.rest h4 { font-size: 1rem; margin: 1.75rem 0 0.5rem; }
+
+/* the sidebar sits beside the paper introduction only; the demonstrations below use the full
+   width. text keeps a readable line length, figures take the whole width */
+.top {
+  grid-template-areas:
+    "intro side"
+    "rest  rest";
+}
+.rest { border-top: 1px solid var(--rule); margin-top: 2.5rem; }
+.rest > h2, .rest > h3, .rest > h4, .rest > p, .rest > pre { max-width: 48rem; }
+.rest figure.wide { margin-left: 0; margin-right: 0; }
+.rest #growth canvas, .rest #blend canvas { width: min(100%, 52rem); }
+.rest figcaption, .rest .controls, .rest .legend, .rest .readout, .rest .datasets { max-width: 52rem; }
+@media (max-width: 56rem) {
+  .top { grid-template-areas: "intro" "side" "rest"; }
+}
+
+/* inline mathematics: STIX Two for the symbols the text font lacks (loaded for those glyphs
+   only), and sub/superscripts that do not push the lines apart */
+body { font-family: "STIX Two Text", Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif; }
+.math { white-space: nowrap; }
+sub, sup { line-height: 0; font-size: 0.75em; }
+
+/* demonstrations: text, controls and figures share one centred column */
+.rest > h2, .rest > h3, .rest > h4, .rest > p, .rest > pre {
+  max-width: 52rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* demonstrations: left-aligned with the introduction and spread over the full width. the
+   interactive figures put the canvas on the left and their controls, legend and caption beside it */
+.rest > h2, .rest > h3, .rest > h4, .rest > p, .rest > pre {
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+.rest #growth, .rest #blend {
+  display: grid;
+  grid-template-columns: minmax(0, 40rem) minmax(0, 1fr);
+  column-gap: 2.5rem;
+  align-content: start;
+  margin: 1.5rem 0 2.5rem;
+}
+.rest #growth canvas, .rest #blend canvas {
+  grid-column: 1;
+  grid-row: 1 / span 5;
+  width: 100%;
+  margin: 0;
+}
+.rest #growth > :not(canvas), .rest #blend > :not(canvas) {
+  grid-column: 2;
+  max-width: none;
+  margin: 0 0 1rem;
+}
+.rest #growth > .datasets { flex-wrap: wrap; }
+.rest #growth > figcaption, .rest #blend > figcaption { margin-top: 0.5rem; }
+
+@media (max-width: 56rem) {
+  .rest #growth, .rest #blend { grid-template-columns: minmax(0, 1fr); }
+  .rest #growth canvas, .rest #blend canvas { grid-row: auto; }
+  .rest #growth > :not(canvas), .rest #blend > :not(canvas) { grid-column: 1; }
+  .rest #growth > .datasets { order: -1; }
+}
+/* keep the side items packed at the top; the last row absorbs the canvas height */
+.rest #growth, .rest #blend { grid-template-rows: auto auto auto auto 1fr; }
+@media (max-width: 56rem) {
+  .rest #growth, .rest #blend { grid-template-rows: none; }
+}
+
+/* compact spacing */
+body { font-size: 16.5px; line-height: 1.5; }
+p { margin: 0 0 0.8em; }
+h2 { font-size: 1.2rem; margin: 1.6rem 0 0.5rem; }
+.top { gap: 2.25rem; }
+.top header { padding-top: 1.75rem; }
+.top header h1 { font-size: 1.75rem; margin: 0 0 0.25rem; }
+.kicker { font-size: 0.75rem; }
+.authors { margin: 0.25rem 0 0.1rem; }
+.links { margin: 0 0 0.9rem; }
+.lede { font-size: 1rem; }
+.features { margin: 0; }
+.features li { margin-bottom: 0.4rem; }
+.top figure.wide { margin: 1rem 0; }
+
+.sidebar { padding-top: 2rem; font-size: 0.85rem; }
+.sidebar h3 { margin: 1rem 0 0.25rem; }
+.sidebar .tabs { margin: 0.35rem 0 0.5rem; }
+.panel { padding-top: 0.5rem; }
+.callout { margin: 0.75rem 0; padding: 0.4rem 0.7rem; }
+pre { padding: 0.75rem; }
+
+.rest { margin-top: 1.75rem; }
+.rest h3 { font-size: 1.05rem; margin: 1.5rem 0 0.4rem; }
+.rest h4 { font-size: 0.95rem; margin: 1.25rem 0 0.4rem; }
+.rest #growth, .rest #blend { margin: 1rem 0 1.5rem; column-gap: 2rem; }
+.rest #growth canvas, .rest #blend canvas { max-width: 36rem; }
+.rest #growth, .rest #blend { grid-template-columns: minmax(0, 36rem) minmax(0, 1fr); }
+footer { margin-top: 2.5rem; padding-bottom: 2rem; }
+
+@media (max-width: 56rem) {
+  .rest #growth, .rest #blend { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* bigger figures: a wider page on large screens, and the canvases take most of the width with
+   the controls and caption in a narrower column beside them */
+.top { width: min(88rem, calc(100vw - 2rem)); }
+.rest #growth, .rest #blend { grid-template-columns: minmax(0, 3fr) minmax(15rem, 2fr); }
+.rest #growth canvas, .rest #blend canvas { max-width: none; width: 100%; }
+.top figure.wide img { width: 100%; }
+@media (max-width: 56rem) {
+  .rest #growth, .rest #blend { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* align the sidebar with the left column: same top, and the quick-demo figure box grows so
+   both columns end at the same height */
+.top header, .sidebar { padding-top: 1.75rem; }
+.sidebar {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+}
+.sidebar .demos,
+.sidebar .demos > .panel:not([hidden]),
+.sidebar .demo,
+.sidebar .demo .tabs,
+.sidebar .demo .panel[data-panel="output"]:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.sidebar .demo .tabs { margin-bottom: 0; }
+.sidebar .demo .panel[data-panel="output"] {
+  background: #fff;
+  border-radius: 4px;
+  margin-top: 0.5rem;
+  padding: 0;
+  justify-content: center;
+}
+.sidebar .demo img {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  object-fit: contain;
+}
+.panel[hidden] { display: none !important; }
+
+@media (max-width: 56rem) {
+  .sidebar { align-self: start; }
+}
+/* never shrink the demo figure below a usable size */
+.sidebar .demo img { min-height: 14rem; }
+
+/* variants */
+.variants-figure img { max-width: 64rem; border-radius: 4px; background: #fff; }
+.variants {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2rem;
+  margin: 0.5rem 0 1rem;
+}
+.variants h3 { margin-top: 0.5rem; }
+.variant-energy { color: var(--muted); font-style: italic; margin-bottom: 0.5rem; }
+.equation { overflow-x: auto; font-size: 0.9em; }
+.variant-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.9rem;
+  margin: 1rem 0 0.5rem;
+}
+.variant-table th, .variant-table td {
+  text-align: left;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+.variant-table thead th { border-bottom: 2px solid var(--text); }
+.variant-table tbody th { font-weight: normal; color: var(--muted); }
+@media (max-width: 56rem) {
+  .variants { grid-template-columns: minmax(0, 1fr); }
+  .variant-table { display: block; overflow-x: auto; }
+}
+
+/* each variant's drawing sits above its own explanation */
+.variant-figure { margin: 0 0 0.5rem; }
+.variant-figure img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 4px;
+}
+.variant-figure img + img { margin-top: 0.4rem; }
+
+/* smaller variant drawings, centred in their column */
+.variant-figure img {
+  width: 72%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* variants: a comparison grid with one row per graph and one column per variant, and each
+   variant's explanation under its column */
+.variant-grid {
+  display: grid;
+  grid-template-columns: minmax(10rem, 1fr) repeat(3, minmax(0, 1.4fr));
+  column-gap: 1.5rem;
+  row-gap: 1rem;
+  margin: 1rem 0 1.5rem;
+  align-items: start;
+}
+.vg-head {
+  font-weight: bold;
+  text-align: center;
+  padding-bottom: 0.4rem;
+  border-bottom: 2px solid var(--text);
+}
+.vg-label { padding-top: 0.5rem; border-top: 1px solid var(--rule); }
+.vg-label p { margin: 0 0 0.3rem; }
+.vg-name { font-weight: bold; }
+.vg-kind { color: var(--muted); font-size: 0.9rem; }
+.vg-note { font-size: 0.85rem; }
+.vg-cell { margin: 0; padding-top: 0.5rem; border-top: 1px solid var(--rule); }
+.vg-cell img {
+  display: block;
+  width: 78%;
+  margin: 0 auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 4px;
+}
+.vg-cell figcaption {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 0.3rem;
+  font-variant-numeric: tabular-nums;
+}
+.vg-cell figcaption strong { color: var(--text); }
+.vg-text { border-top: 1px solid var(--rule); padding-top: 0.5rem; }
+.vg-text h3 { margin-top: 0.25rem; }
+
+@media (max-width: 56rem) {
+  .variant-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 0.75rem; }
+  .vg-corner { display: none; }
+  .vg-label { grid-column: 1 / -1; }
+  .vg-cell img { width: 100%; }
+  .vg-text { grid-column: 1 / -1; }
+}
+
+/* compact comparison matrix: small equal cells, so a whole row can be compared at a glance */
+.variant-grid {
+  grid-template-columns: 15rem repeat(3, 10.5rem);
+  column-gap: 1rem;
+  row-gap: 0.75rem;
+  width: fit-content;
+}
+.vg-cell img { width: 100%; }
+.vg-label { padding-right: 0.5rem; }
+.vg-note { font-size: 0.82rem; line-height: 1.4; }
+
+/* the explanations, one column per variant in the same order as the matrix */
+.variants {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2rem;
+  margin: 0.5rem 0 1rem;
+}
+.variants section { border-top: 1px solid var(--rule); padding-top: 0.5rem; }
+.variants h3 { margin-top: 0.25rem; }
+
+@media (max-width: 56rem) {
+  .variant-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); width: auto; }
+  .variants { grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }
+}
+
+/* results under the explanations: the same three columns, full width, with each graph's label as
+   a heading line across its row */
+.variant-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 2rem;
+  row-gap: 0.5rem;
+  width: auto;
+  margin-top: 0.5rem;
+}
+.vg-label {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.75rem;
+  margin-top: 0.75rem;
+  padding: 0.4rem 0 0;
+}
+.vg-label p { margin: 0; }
+.vg-cell { border-top: none; padding-top: 0; }
+.vg-cell img { width: 100%; max-width: 13rem; }
+
+/* display equations scale down to fit their column instead of scrolling */
+.variants .equation { font-size: 0.78em; overflow-x: auto; }
+.variants .equation .katex-display { margin: 0.4em 0; }
+
+@media (max-width: 56rem) {
+  .variant-grid { column-gap: 0.75rem; }
+  .vg-cell img { max-width: none; }
+}
+
+/* variants as rows: each explanation beside its three compact drawings, one column per graph */
+.variant-matrix {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(3, 10.5rem);
+  column-gap: 1rem;
+  row-gap: 0;
+  margin: 1rem 0 0.5rem;
+  align-items: start;
+}
+.vm-head {
+  grid-column: auto;
+  display: block;
+  margin: 0;
+  padding: 0 0 0.4rem;
+  border-top: none;
+  border-bottom: 2px solid var(--text);
+  text-align: center;
+}
+.vm-head p { margin: 0; }
+.vm-text, .variant-matrix .vg-cell {
+  border-top: 1px solid var(--rule);
+  padding: 0.75rem 0 1rem;
+}
+.vm-text { padding-right: 1rem; }
+.vm-text h3 { margin-top: 0; }
+.vm-text .equation { font-size: 0.85em; overflow-x: auto; }
+.variant-matrix .vg-cell { margin: 0; }
+.variant-matrix .vg-cell img { width: 100%; max-width: none; }
+.vm-notes { font-size: 0.85rem; color: var(--muted); }
+.vm-notes strong { color: var(--text); }
+
+@media (max-width: 56rem) {
+  .variant-matrix { grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 0.75rem; }
+  .vm-corner { display: none; }
+  .vm-text { grid-column: 1 / -1; padding-bottom: 0.25rem; }
+  .variant-matrix .vg-cell { border-top: none; padding-top: 0; }
+}
+
+/* six-graph comparison: variants as rows, graphs as columns, two columns per variant's strength.
+   cells hold only images and short numbers, so everything lines up */
+.variant-matrix6 {
+  display: grid;
+  grid-template-columns: 6.5rem repeat(6, minmax(0, 1fr));
+  column-gap: 0.75rem;
+  row-gap: 0.5rem;
+  margin: 1.25rem 0 0.75rem;
+  align-items: center;
+}
+.v6-group {
+  grid-column: span 2;
+  text-align: center;
+  font-size: 0.85rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 2px solid var(--text);
+}
+.v6-group span { color: var(--muted); }
+.v6-head { text-align: center; align-self: end; }
+.v6-head p { margin: 0; }
+.v6-head .vg-name { font-size: 0.85rem; }
+.v6-head .vg-kind { font-size: 0.75rem; }
+.v6-row { font-size: 0.85rem; font-weight: bold; text-align: right; padding-right: 0.25rem; }
+.variant-matrix6 .vg-cell { margin: 0; padding: 0; border: none; }
+.variant-matrix6 .vg-cell img { width: 100%; max-width: 11rem; margin: 0 auto; }
+.variant-matrix6 .vg-cell figcaption { font-size: 0.72rem; margin-top: 0.15rem; }
+
+@media (max-width: 56rem) {
+  .variant-matrix6 { grid-template-columns: 4rem repeat(6, 9rem); overflow-x: auto; }
+}
+
+/* graph names in one small row under the images; undo the full-width label style they inherit */
+.variant-matrix6 .v6-head {
+  grid-column: auto;
+  display: block;
+  margin: 0;
+  padding: 0.2rem 0 0;
+  border: none;
+  text-align: center;
+  align-self: start;
+}
+.variant-matrix6 .v6-head .vg-name { font-size: 0.8rem; font-weight: bold; }
+.variant-matrix6 .v6-head .vg-kind { font-size: 0.72rem; }
+.variant-matrix6 { margin-top: 0.75rem; }
+
+/* narrower matrix columns: fixed width, so the drawings sit close together */
+.variant-matrix6 {
+  grid-template-columns: 6.5rem repeat(6, 9rem);
+  column-gap: 0.6rem;
+  width: fit-content;
+}
+.variant-matrix6 .vg-cell img { max-width: none; }
+@media (max-width: 56rem) {
+  .variant-matrix6 { grid-template-columns: 4rem repeat(6, 8rem); width: auto; }
+}
+
+/* narrower matrix columns */
+.variant-matrix6 { grid-template-columns: 6rem repeat(6, 7.5rem); column-gap: 0.5rem; }
+.variant-matrix6 .vg-cell figcaption { font-size: 0.68rem; }
+
+/* graph descriptions */
+.graph-table { width: auto; max-width: 64rem; font-size: 0.85rem; margin-top: 0.25rem; }
+.graph-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.graph-table td:first-child { white-space: nowrap; }
+@media (max-width: 56rem) {
+  .variant-matrix6 { grid-template-columns: 4rem repeat(6, 7rem); }
+}
+
+/* narrower still */
+.variant-matrix6 { grid-template-columns: 5.5rem repeat(6, 6.5rem); column-gap: 0.5rem; width: fit-content; }
+.variant-matrix6 .vg-cell img { width: 100%; max-width: 6.5rem; }
+.variant-matrix6 .vg-cell figcaption { font-size: 0.68rem; line-height: 1.3; white-space: nowrap; }
+@media (max-width: 56rem) {
+  .variant-matrix6 { grid-template-columns: 4rem repeat(6, 6.5rem); }
+}
+
+/* narrower page overall; the comparison matrix fills it again */
+.top { width: min(68rem, calc(100vw - 2rem)); grid-template-columns: minmax(0, 1fr) minmax(0, 24rem); }
+footer { max-width: 68rem; }
+.variant-matrix6 {
+  grid-template-columns: 5.5rem repeat(6, minmax(0, 1fr));
+  column-gap: 0.6rem;
+  width: auto;
+}
+.variant-matrix6 .vg-cell img { max-width: none; }
+@media (max-width: 56rem) {
+  .top { grid-template-columns: minmax(0, 1fr); }
+  .variant-matrix6 { grid-template-columns: 4rem repeat(6, 6.5rem); }
+}
+
+/* the quick-demo box takes the page background; only the image itself is white */
+.sidebar .demo .panel[data-panel="output"] { background: none; }
+.sidebar .demo img { background: none; border-radius: 4px; }
+
+/* baseline rows under the Fling variants, set off by a thin labelled rule */
+.v6-divider {
+  grid-column: 1 / -1;
+  font-size: 0.75rem;
+  color: var(--muted);
+  border-top: 1px solid var(--rule);
+  padding-top: 0.3rem;
+  margin-top: 0.25rem;
+}
+.v6-row.baseline { font-weight: normal; color: var(--muted); }
+
+/* matrix row labels start at the page's left edge, like the text above */
+.variant-matrix6 .v6-row { text-align: left; padding-right: 0; }
+
+/* the two-line equations fit their column, so no scroll bar */
+.variants .equation { font-size: 0.85em; overflow-x: visible; }
+
+/* images start at the text's left edge: the row names sit as small headings above their row
+   instead of in a column of their own */
+.variant-matrix6 {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  row-gap: 0.15rem;
+}
+.variant-matrix6 .v6-row {
+  grid-column: 1 / -1;
+  text-align: left;
+  font-size: 0.8rem;
+  padding: 0.6rem 0 0.1rem;
+}
+.variant-matrix6 .v6-row:first-child { padding-top: 0; }
+@media (max-width: 56rem) {
+  .variant-matrix6 { grid-template-columns: repeat(6, 6.5rem); }
+}
+
+/* quick-demo images sit at the top of their box, right under the Output / Code tabs */
+.sidebar .demo .panel[data-panel="output"] { justify-content: flex-start; margin-top: 0.4rem; }
+.sidebar .demo img { flex: none; height: auto; min-height: 0; }
+
+/* the sample-fit demonstration uses the same canvas-beside-controls layout as the others */
+.rest #sample {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(15rem, 2fr);
+  grid-template-rows: auto auto auto auto 1fr;
+  column-gap: 2rem;
+  align-content: start;
+  margin: 1rem 0 1.5rem;
+}
+.rest #sample canvas { grid-column: 1; grid-row: 1 / span 5; width: 100%; aspect-ratio: 1; display: block; }
+.rest #sample > :not(canvas) { grid-column: 2; max-width: none; margin: 0 0 1rem; }
+.rest #sample > .datasets { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+@media (max-width: 56rem) {
+  .rest #sample { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+  .rest #sample canvas { grid-row: auto; }
+  .rest #sample > :not(canvas) { grid-column: 1; }
+  .rest #sample > .datasets { order: -1; }
+}
+
+/* placing new entries: main canvas on the left spanning all rows; readout, trend chart, legends and
+   the pointing line beside it */
+.rest #growth { grid-template-rows: repeat(8, auto) 1fr; }
+.rest #growth > canvas { grid-row: 1 / span 9; cursor: crosshair; touch-action: none; }
+.rest #growth .trend {
+  grid-row: auto;
+  grid-column: auto;
+  display: block;
+  width: 100%;
+  height: 7rem;
+  aspect-ratio: auto;
+}
+.trend-note { font-size: 0.75rem; color: var(--muted); margin: 0.2rem 0 0; }
+.markers { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; font-size: 0.85rem; color: var(--muted); }
+.markers span { display: inline-block; width: 0.65rem; height: 0.65rem; border-radius: 50%; margin-right: 0.4rem; vertical-align: -0.05rem; }
+.m-filled { background: var(--text); }
+.m-ring { border: 1.6px solid var(--text); box-sizing: border-box; }
+.inspect { font-size: 0.85rem; min-height: 2.6em; }
+@media (max-width: 56rem) {
+  .rest #growth { grid-template-rows: none; }
+  .rest #growth > canvas { grid-row: auto; }
+}
+
+/* a little wider page */
+.top { width: min(76rem, calc(100vw - 2rem)); }
+footer { max-width: 76rem; }
+
+/* the architecture figure opens the full-width part of the page, below the introduction */
+.rest figure.architecture { margin: 0.5rem auto 1.5rem; text-align: center; }
+.rest figure.architecture img { width: 100%; max-width: 64rem; margin: 0 auto; }
+
+/* footer: authorship, then data credits */
+footer p { margin: 0 0 0.4rem; }
+footer .data-credits { font-size: 0.78rem; }
+footer a { color: inherit; }

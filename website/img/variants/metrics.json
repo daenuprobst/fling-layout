@@ -1,0 +1,140 @@
+{
+ "dwt_1005": {
+  "n": 1005,
+  "Fling": {
+   "stress": 0.0241,
+   "np": 0.383
+  },
+  "FlingStress": {
+   "stress": 0.022,
+   "np": 0.427
+  },
+  "FlingVis": {
+   "stress": 0.1033,
+   "np": 0.47
+  },
+  "sgd2": {
+   "stress": 0.0212,
+   "np": 0.438
+  },
+  "tsNET": {
+   "stress": 0.0553,
+   "np": 0.574
+  }
+ },
+ "grid_400": {
+  "n": 400,
+  "Fling": {
+   "stress": 0.0136,
+   "np": 0.98
+  },
+  "FlingStress": {
+   "stress": 0.0133,
+   "np": 0.997
+  },
+  "FlingVis": {
+   "stress": 0.0146,
+   "np": 1.0
+  },
+  "sgd2": {
+   "stress": 0.0131,
+   "np": 1.0
+  },
+  "tsNET": {
+   "stress": 0.0171,
+   "np": 1.0
+  }
+ },
+ "tree_400": {
+  "n": 400,
+  "Fling": {
+   "stress": 0.0947,
+   "np": 0.192
+  },
+  "FlingStress": {
+   "stress": 0.0389,
+   "np": 0.401
+  },
+  "FlingVis": {
+   "stress": 0.0749,
+   "np": 0.634
+  },
+  "sgd2": {
+   "stress": 0.0365,
+   "np": 0.569
+  },
+  "tsNET": {
+   "stress": 0.1184,
+   "np": 0.559
+  }
+ },
+ "jagmesh8": {
+  "n": 1141,
+  "Fling": {
+   "stress": 0.0064,
+   "np": 0.718
+  },
+  "FlingStress": {
+   "stress": 0.005,
+   "np": 0.728
+  },
+  "FlingVis": {
+   "stress": 0.0074,
+   "np": 0.727
+  },
+  "sgd2": {
+   "stress": 0.0047,
+   "np": 0.735
+  },
+  "tsNET": {
+   "stress": 0.0092,
+   "np": 0.721
+  }
+ },
+ "sbm_240": {
+  "n": 240,
+  "Fling": {
+   "stress": 0.1556,
+   "np": 0.093
+  },
+  "FlingStress": {
+   "stress": 0.129,
+   "np": 0.07
+  },
+  "FlingVis": {
+   "stress": 0.1828,
+   "np": 0.196
+  },
+  "sgd2": {
+   "stress": 0.1281,
+   "np": 0.08
+  },
+  "tsNET": {
+   "stress": 0.2066,
+   "np": 0.259
+  }
+ },
+ "delaunay_600": {
+  "n": 600,
+  "Fling": {
+   "stress": 0.0722,
+   "np": 0.341
+  },
+  "FlingStress": {
+   "stress": 0.0639,
+   "np": 0.31
+  },
+  "FlingVis": {
+   "stress": 0.1185,
+   "np": 0.828
+  },
+  "sgd2": {
+   "stress": 0.0628,
+   "np": 0.276
+  },
+  "tsNET": {
+   "stress": 0.1188,
+   "np": 0.832
+  }
+ }
+}
