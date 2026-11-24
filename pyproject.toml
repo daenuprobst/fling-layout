@@ -5,10 +5,12 @@ build-backend = "hatchling.build"
 [project]
 name = "fling-layout"
 version = "0.1.0"
-description = "Graph layout by fitting a function of node features instead of a table of coordinates"
+license = "MIT"
+description = "Graph drawing with a learned layout function"
 readme = "README.md"
 requires-python = ">=3.10"
-authors = [{ name = "Daniel Probst" }]
+authors = [{ name = "Berfin Inal"},
+            {name = "Daniel Probst"} ]
 keywords = ["graph-drawing", "graph-layout", "implicit-neural-representation", "stress"]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -42,4 +44,9 @@ all = [
 packages = ["fling"]
 
 [tool.hatch.build.targets.sdist]
-include = ["fling", "scripts", "README.md"]
+include = ["/fling", "/scripts", "/README.md", "/LICENSE"]
+exclude = ["scripts/visualization", "**/__pycache__"]
+
+[project.urls]
+Homepage = "https://github.com/daenuprobst/fling-layout"
+Repository = "https://github.com/daenuprobst/fling-layout"
