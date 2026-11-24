@@ -19,15 +19,22 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  # upload in its own job so the artifact is visible before deploy-pages
+  # looks it up (actions/deploy-pages#451)
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/upload-pages-artifact@v5
         with:
           path: website
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
       - id: deploy
         uses: actions/deploy-pages@v5
